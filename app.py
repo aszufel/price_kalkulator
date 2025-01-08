@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 
 # Konfiguracja strony
 st.set_page_config(
@@ -96,40 +95,26 @@ def main():
                     height=500  # Stała wysokość tabeli, dostosuj według potrzeb
                 )
                 
-                # Dwie kolumny na wykres i statystyki
-                col1, col2 = st.columns([2, 1])
+                # Statystyki pod tabelą
+                st.markdown("### Statystyki")
+                col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    st.markdown("### Porównanie cen")
-                    fig = px.bar(
-                        df,
-                        x='Typ pokoju',
-                        y=['Cena bezzwrotna', 'Cena zwrotna'],
-                        barmode='group',
-                        height=400,
-                        labels={'value': 'Cena (PLN)', 'variable': 'Rodzaj ceny'}
-                    )
-                    fig.update_layout(
-                        xaxis_tickangle=-45,
-                        margin=dict(l=20, r=20, t=20, b=20)
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                with col2:
-                    st.markdown("### Statystyki")
                     st.metric("Średnia cena bezzwrotna", f"{df['Cena bezzwrotna'].mean():.0f} PLN")
+                with col2:
                     st.metric("Średnia cena zwrotna", f"{df['Cena zwrotna'].mean():.0f} PLN")
+                with col3:
                     st.metric("Różnica cen", f"{(df['Cena zwrotna'] - df['Cena bezzwrotna']).mean():.0f} PLN")
-                    
-                    # Przycisk eksportu na dole statystyk
-                    csv = df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        "📥 Pobierz jako CSV",
-                        csv,
-                        "ceny_pokoi.csv",
-                        "text/csv",
-                        key='download-csv'
-                    )
+                
+                # Przycisk eksportu pod statystykami
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "📥 Pobierz jako CSV",
+                    csv,
+                    "ceny_pokoi.csv",
+                    "text/csv",
+                    key='download-csv'
+                )
                 
         except ValueError:
             st.error('❌ Nieprawidłowy format ceny. Wprowadź liczbę.')

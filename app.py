@@ -48,103 +48,91 @@ def calculate_prices(base_price):
     return pd.DataFrame(prices)
 
 def main():
-    # Utworzenie dwóch kolumn
-    col1, col2 = st.columns([1, 2])
+    # Input w jednej linii na górze
+    st.markdown("### Wprowadź dane")
+    col_input1, col_input2 = st.columns([2, 1])
     
-    with col1:
-        st.markdown("### Wprowadź dane")
-        # Dodanie inputu z placeholder
+    with col_input1:
         base_price_input = st.text_input(
             'Cena bazowa:',
             placeholder='np. 100',
             help='Wprowadź cenę bazową (możesz użyć kropki lub przecinka)'
         )
-        
-        # Dodanie kolorowego przycisku
+    
+    with col_input2:
         calculate_button = st.button('💰 Oblicz ceny', type="primary")
-        
-        if base_price_input and calculate_button:
-            try:
-                base_price = float(base_price_input.replace(',', '.'))
+    
+    if base_price_input and calculate_button:
+        try:
+            base_price = float(base_price_input.replace(',', '.'))
+            
+            if base_price <= 0:
+                st.error('❌ Cena bazowa musi być większa niż 0')
+            else:
+                st.success(f'✅ Cena bazowa: {base_price:.2f} PLN')
+                df = calculate_prices(base_price)
                 
-                if base_price <= 0:
-                    st.error('❌ Cena bazowa musi być większa niż 0')
-                else:
-                    # Dodanie informacji o cenie bazowej
-                    st.success(f'✅ Cena bazowa: {base_price:.2f} PLN')
+                # Wyświetlenie tabeli na całej szerokości
+                st.markdown("### Wyniki")
+                st.dataframe(
+                    df,
+                    column_config={
+                        "Typ pokoju": st.column_config.TextColumn(
+                            "Typ pokoju",
+                            width=300
+                        ),
+                        "Cena bezzwrotna": st.column_config.NumberColumn(
+                            "Cena bezzwrotna",
+                            format="%.0f PLN",
+                            width=200
+                        ),
+                        "Cena zwrotna": st.column_config.NumberColumn(
+                            "Cena zwrotna",
+                            format="%.0f PLN",
+                            width=200
+                        )
+                    },
+                    hide_index=True,
+                    height=500  # Stała wysokość tabeli, dostosuj według potrzeb
+                )
+                
+                # Dwie kolumny na wykres i statystyki
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.markdown("### Porównanie cen")
+                    fig = px.bar(
+                        df,
+                        x='Typ pokoju',
+                        y=['Cena bezzwrotna', 'Cena zwrotna'],
+                        barmode='group',
+                        height=400,
+                        labels={'value': 'Cena (PLN)', 'variable': 'Rodzaj ceny'}
+                    )
+                    fig.update_layout(
+                        xaxis_tickangle=-45,
+                        margin=dict(l=20, r=20, t=20, b=20)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    st.markdown("### Statystyki")
+                    st.metric("Średnia cena bezzwrotna", f"{df['Cena bezzwrotna'].mean():.0f} PLN")
+                    st.metric("Średnia cena zwrotna", f"{df['Cena zwrotna'].mean():.0f} PLN")
+                    st.metric("Różnica cen", f"{(df['Cena zwrotna'] - df['Cena bezzwrotna']).mean():.0f} PLN")
                     
-                    # Obliczenie cen
-                    df = calculate_prices(base_price)
-                    
-                    # Wyświetlenie tabeli w prawej kolumnie
-                    with col2:
-                        st.markdown("### Wyniki")
-                        st.dataframe(
-                            df,
-                            column_config={
-                                "Typ pokoju": st.column_config.TextColumn(
-                                    "Typ pokoju",
-                                    width="medium"
-                                ),
-                                "Cena bezzwrotna": st.column_config.NumberColumn(
-                                    "Cena bezzwrotna",
-                                    format="%.0f PLN",
-                                    width="small"
-                                ),
-                                "Cena zwrotna": st.column_config.NumberColumn(
-                                    "Cena zwrotna",
-                                    format="%.0f PLN",
-                                    width="small"
-                                )
-                            },
-                            hide_index=True,
-                            use_container_width=True
-                        )
-                        
-                        # Dodanie wykresu porównawczego
-                        st.markdown("### Porównanie cen")
-                        fig = px.bar(
-                            df,
-                            x='Typ pokoju',
-                            y=['Cena bezzwrotna', 'Cena zwrotna'],
-                            barmode='group',
-                            title='Porównanie cen bezzwrotnych i zwrotnych',
-                            labels={'value': 'Cena (PLN)', 'variable': 'Rodzaj ceny'}
-                        )
-                        fig.update_layout(xaxis_tickangle=-45)
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        # Dodanie przycisku do pobrania CSV
-                        csv = df.to_csv(index=False).encode('utf-8')
-                        st.download_button(
-                            "📥 Pobierz jako CSV",
-                            csv,
-                            "ceny_pokoi.csv",
-                            "text/csv",
-                            key='download-csv'
-                        )
-                        
-                        # Dodanie statystyk
-                        st.markdown("### Statystyki")
-                        col_stats1, col_stats2, col_stats3 = st.columns(3)
-                        with col_stats1:
-                            st.metric(
-                                "Średnia cena bezzwrotna",
-                                f"{df['Cena bezzwrotna'].mean():.0f} PLN"
-                            )
-                        with col_stats2:
-                            st.metric(
-                                "Średnia cena zwrotna",
-                                f"{df['Cena zwrotna'].mean():.0f} PLN"
-                            )
-                        with col_stats3:
-                            st.metric(
-                                "Różnica cen",
-                                f"{(df['Cena zwrotna'] - df['Cena bezzwrotna']).mean():.0f} PLN"
-                            )
-                            
-            except ValueError:
-                st.error('❌ Nieprawidłowy format ceny. Wprowadź liczbę.')
+                    # Przycisk eksportu na dole statystyk
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        "📥 Pobierz jako CSV",
+                        csv,
+                        "ceny_pokoi.csv",
+                        "text/csv",
+                        key='download-csv'
+                    )
+                
+        except ValueError:
+            st.error('❌ Nieprawidłowy format ceny. Wprowadź liczbę.')
 
 if __name__ == '__main__':
     main()
